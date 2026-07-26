@@ -94,7 +94,7 @@ The previous attempt used placeholder or empty review prose. Produce a fresh, su
   const signalMap = new Map(signals.map((signal) => [signal.id, signal]));
   const candidates = output.observations
     .slice(0, MAX_MODEL_OBSERVATIONS)
-    .filter((observation) => isActionable(observation.recommendation));
+    .filter(isCurrentActionableConcern);
   const accepted = candidates
     .filter((observation) => emitModelObservation(ctx, observation, sources, signalMap));
   if (accepted.length !== candidates.length) {
@@ -106,20 +106,26 @@ The previous attempt used placeholder or empty review prose. Produce a fresh, su
   const staticRisk = maxRisk(signals
     .filter((signal) => signal.disposition === "finding")
     .map((signal) => signal.severity));
-  const risk = maxRisk([
-    output.assessment.risk,
-    staticRisk,
-    ...accepted.map((observation) => observation.severity),
-  ]);
+  const risk = maxRisk([staticRisk, ...accepted.map((observation) => observation.severity)]);
   const blocking = rank[staticRisk] >= rank.medium ||
     accepted.some((observation) => rank[observation.severity] >= rank.medium);
-  const ship = output.assessment.ship && !blocking;
+  const ship = !blocking;
+  const modelObservationsWereRejected = candidates.length < Math.min(
+    output.observations.length,
+    MAX_MODEL_OBSERVATIONS,
+  );
 
   ctx.review.assessment({
     risk,
-    summary: `${verdicts[output.assessment.verdict]} — ${output.assessment.summary}`,
+    summary: modelObservationsWereRejected && accepted.length === 0 &&
+        rank[staticRisk] < rank.medium
+      ? "Ready with minor improvements — No material current TypeScript concern was supported by the prepared evidence."
+      : `${verdicts[output.assessment.verdict]} — ${output.assessment.summary}`,
   });
-  for (const [index, strength] of output.strengths.slice(0, 3).entries()) {
+  const strengths = output.strengths
+    .slice(0, 3)
+    .filter((strength) => isSubstantive(strength.summary, 15, 600));
+  for (const [index, strength] of strengths.entries()) {
     const evidence = strength.evidenceIds
       .map((id) => {
         const source = sources.get(id);
@@ -144,7 +150,9 @@ The previous attempt used placeholder or empty review prose. Produce a fresh, su
   const top = accepted.slice().sort(
     (left, right) => rank[right.severity] - rank[left.severity] || left.id.localeCompare(right.id),
   )[0];
-  const concern = output.assessment.primaryConcern.trim() || top?.title || staticConcern(signals);
+  const concern = accepted.length > 0
+    ? output.assessment.primaryConcern.trim() || top?.title
+    : staticConcern(signals);
   ctx.review.opinion(await formatOpinionAsync({
     ship,
     ...(ship || concern === undefined ? {} : { concern }),
@@ -280,37 +288,71 @@ function maxRisk(values: Risk[]): Risk {
   return values.reduce<Risk>((best, current) => rank[current] > rank[best] ? current : best, "none");
 }
 
-function isActionable(recommendation: string): boolean {
-  return !/^\s*(?:no (?:action|change)s? (?:is |are )?(?:needed|required)|leave (?:this|it) as-is|keep (?:this|it) as-is)\b/i
-    .test(recommendation);
+function isCurrentActionableConcern(observation: ModelObservation): boolean {
+  if (
+    /^\s*(?:no (?:action|change)s? (?:is |are )?(?:needed|required)|leave (?:this|it) as-is|keep (?:this|it) as-is)\b/i
+      .test(observation.recommendation)
+  ) {
+    return false;
+  }
+  const rationale = [
+    observation.summary,
+    observation.impact,
+    observation.recommendation,
+    observation.tradeoffs,
+  ].join(" ");
+  return !(
+    /\b(?:no current (?:defect|issue|risk)|not (?:unsafe|a (?:code )?defect) today|monitoring\/process concern rather than a code defect)\b/i
+      .test(rationale) ||
+    /\bif\b[^.]{0,140}\b(?:ever|future)\b/i.test(rationale)
+  );
 }
 
 function assertSubstantiveOutput(output: TypeScriptModelOutput): void {
-  requireSubstantive(output.assessment.summary, 30, "assessment.summary");
+  requireSubstantive(output.assessment.summary, 30, 1_500, "assessment.summary");
   for (const [index, observation] of output.observations.entries()) {
-    requireSubstantive(observation.title, 6, `observations[${index}].title`);
-    requireSubstantive(observation.summary, 20, `observations[${index}].summary`);
-    requireSubstantive(observation.principle, 15, `observations[${index}].principle`);
-    requireSubstantive(observation.impact, 15, `observations[${index}].impact`);
-    requireSubstantive(observation.recommendation, 15, `observations[${index}].recommendation`);
-  }
-  for (const [index, strength] of output.strengths.entries()) {
-    requireSubstantive(strength.summary, 15, `strengths[${index}].summary`);
+    requireSubstantive(observation.title, 6, 160, `observations[${index}].title`);
+    requireSubstantive(observation.summary, 20, 800, `observations[${index}].summary`);
+    requireSubstantive(observation.principle, 15, 500, `observations[${index}].principle`);
+    requireSubstantive(observation.impact, 15, 800, `observations[${index}].impact`);
+    requireSubstantive(observation.recommendation, 15, 800, `observations[${index}].recommendation`);
+    if (observation.tradeoffs.trim() !== "") {
+      requireSubstantive(observation.tradeoffs, 5, 800, `observations[${index}].tradeoffs`);
+    }
   }
 }
 
-function requireSubstantive(text: string, minimum: number, field: string): void {
-  const normalized = text.trim();
-  if (
-    normalized.length < minimum ||
-    /^(?:assessment|detail|impact|none|principle|quote|recommendation|string|summary|title|tradeoffs?)$/i
-      .test(normalized)
-  ) {
+function requireSubstantive(
+  text: string,
+  minimum: number,
+  maximum: number,
+  field: string,
+): void {
+  if (!isSubstantive(text, minimum, maximum)) {
     throw new ModelReviewError(
       `TypeScript model review returned a placeholder or empty ${field}.`,
       { code: "invalid_model_judgment", retryable: true },
     );
   }
+}
+
+function isSubstantive(text: string, minimum: number, maximum: number): boolean {
+  const normalized = text.trim();
+  return normalized.length >= minimum &&
+    normalized.length <= maximum &&
+    !hasDegenerateRepetition(normalized) &&
+    !/^(?:assessment|detail|impact|none|placeholder|principle|quote|recommendation|string|summary|title|tradeoffs?)$/i
+      .test(normalized);
+}
+
+function hasDegenerateRepetition(text: string): boolean {
+  const units = text.toLowerCase()
+    .split(/(?:\r?\n+|(?<=[.!?])\s+)/)
+    .map((unit) => unit.replace(/[.!?]+$/u, "").trim())
+    .filter((unit) => unit.length >= 2);
+  const counts = new Map<string, number>();
+  for (const unit of units) counts.set(unit, (counts.get(unit) ?? 0) + 1);
+  return [...counts.values()].some((count) => count >= 4);
 }
 
 function staticConcern(signals: DeterministicSignal[]): string | undefined {

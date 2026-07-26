@@ -57,6 +57,57 @@ test("model observations that recommend no action do not become findings", async
   assert.equal(result.opinion?.ship, true);
 });
 
+test("hypothetical self-negating observations cannot veto shipping", async () => {
+  const root = await mkdtemp(join(tmpdir(), "typescript-hypothetical-"));
+  await writeFile(join(root, "index.ts"), "export type Severity = \"low\" | \"high\";\n");
+  const model: ReviewModel = {
+    async review<T>() {
+      return {
+        output: {
+          schemaVersion: 1,
+          assessment: {
+            verdict: "type-design-concerns",
+            risk: "medium",
+            ship: false,
+            summary: "A hypothetical future severity could require broadening this closed union.",
+            primaryConcern: "a possible future severity",
+          },
+          observations: [{
+            id: "future-severity",
+            title: "Future severity is not represented",
+            category: "type-system",
+            severity: "medium",
+            confidence: "medium",
+            principle: "Related modules should use compatible domain vocabularies.",
+            summary: "The current union deliberately contains the two severities used today.",
+            impact: "If a future severity is ever added, this union would reject it at compile time.",
+            recommendation: "Broaden the union preemptively to include an unused critical value.",
+            tradeoffs: "This is a monitoring/process concern rather than a code defect today.",
+            evidence: [{
+              evidenceId: "source:1",
+              line: 1,
+              detail: "The union contains the currently supported values.",
+              quote: "export type Severity = \"low\" | \"high\";",
+            }],
+          }],
+          strengths: [],
+        } as T,
+        provider: "fixture",
+        model: "fixture",
+      };
+    },
+  };
+
+  const result = await createApp().run({
+    input: { source: { path: root } },
+    model,
+  });
+
+  assert.deepEqual(result.findings, []);
+  assert.equal(result.assessment?.risk, "none");
+  assert.equal(result.opinion?.ship, true);
+});
+
 test("exact evidence quotes correct an imprecise model line number", async () => {
   const root = await mkdtemp(join(tmpdir(), "typescript-evidence-line-"));
   await writeFile(

@@ -18,6 +18,12 @@ export function buildTypeScriptModelRequest(
         ...(change?.headRef === undefined ? {} : { headRef: change.headRef }),
         worktree: change?.worktree ?? false,
       },
+      platformContract: {
+        modelReviewOutput:
+          "When a schema is supplied to ctx.model.review, the model broker validates the returned JSON against that schema before resolving.",
+        preparedEvidence:
+          "Deterministic signal locations are authoritative prepared facts; consumers may intentionally replace a model-suggested line with that prepared location.",
+      },
       preparation: {
         candidates: discovery.candidates,
         included: discovery.sources.length,
