@@ -215,15 +215,12 @@ function evidenceById(
   if (exactQuote === "") return undefined;
   const source = sources.get(id);
   if (source !== undefined) {
-    if (!Number.isInteger(requestedLine) || requestedLine < 1 || requestedLine > source.lines.length) {
-      return undefined;
-    }
-    const nearby = source.lines.slice(Math.max(0, requestedLine - 3), requestedLine + 2).join("\n");
-    if (!nearby.includes(exactQuote)) return undefined;
+    const line = exactQuoteLine(source.content, exactQuote, requestedLine);
+    if (line === undefined) return undefined;
     return {
-      location: { file: source.path, line: requestedLine },
+      location: { file: source.path, line },
       message: detail,
-      snippet: source.lines.slice(Math.max(0, requestedLine - 2), requestedLine + 1)
+      snippet: source.lines.slice(Math.max(0, line - 2), line + 1)
         .join("\n").slice(0, 500),
       data: { evidenceId: id, status: source.status },
     };
@@ -236,6 +233,24 @@ function evidenceById(
     snippet: signal.snippet,
     data: { evidenceId: id, ruleId: signal.ruleId },
   };
+}
+
+function exactQuoteLine(
+  content: string,
+  quote: string,
+  requestedLine: number,
+): number | undefined {
+  let offset = content.indexOf(quote);
+  let best: { line: number; distance: number } | undefined;
+  while (offset !== -1) {
+    const line = content.slice(0, offset).split("\n").length;
+    const distance = Number.isInteger(requestedLine)
+      ? Math.abs(line - requestedLine)
+      : Number.POSITIVE_INFINITY;
+    if (best === undefined || distance < best.distance) best = { line, distance };
+    offset = content.indexOf(quote, offset + quote.length);
+  }
+  return best?.line;
 }
 
 function applyDeterministicAssessment(

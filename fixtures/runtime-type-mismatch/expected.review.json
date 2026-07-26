@@ -43,10 +43,10 @@
         {
           "location": {
             "file": "src/config.ts",
-            "line": 2
+            "line": 3
           },
           "message": "Config declares endpoint as a runtime URL object.",
-          "snippet": "export interface Config {\n  retries: number;\n  endpoint: URL;"
+          "snippet": "  retries: number;\n  endpoint: URL;\n}"
         },
         {
           "location": {

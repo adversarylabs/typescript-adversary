@@ -57,6 +57,66 @@ test("model observations that recommend no action do not become findings", async
   assert.equal(result.opinion?.ship, true);
 });
 
+test("exact evidence quotes correct an imprecise model line number", async () => {
+  const root = await mkdtemp(join(tmpdir(), "typescript-evidence-line-"));
+  await writeFile(
+    join(root, "index.ts"),
+    [
+      "export interface Config {",
+      "  enabled: boolean;",
+      "}",
+      "",
+      "export const config = JSON.parse(raw) as Config;",
+      "",
+    ].join("\n"),
+  );
+  const model: ReviewModel = {
+    async review<T>() {
+      return {
+        output: {
+          schemaVersion: 1,
+          assessment: {
+            verdict: "type-design-concerns",
+            risk: "medium",
+            ship: false,
+            summary: "The runtime boundary claims a Config without validating the parsed value.",
+            primaryConcern: "the unchecked runtime boundary",
+          },
+          observations: [{
+            id: "unchecked-config",
+            title: "Unchecked configuration boundary",
+            category: "runtime-type-alignment",
+            severity: "medium",
+            confidence: "high",
+            principle: "Compile-time assertions do not validate data received at runtime.",
+            summary: "The parsed value is asserted directly to Config without validation.",
+            impact: "Malformed input can violate the contract presented to every downstream caller.",
+            recommendation: "Validate the parsed value before returning it as Config.",
+            tradeoffs: "Boundary validation adds a small amount of centralized code.",
+            evidence: [{
+              evidenceId: "source:1",
+              line: 1,
+              detail: "The runtime value is asserted directly.",
+              quote: "export const config = JSON.parse(raw) as Config;",
+            }],
+          }],
+          strengths: [],
+        } as T,
+        provider: "fixture",
+        model: "fixture",
+      };
+    },
+  };
+
+  const result = await createApp().run({
+    input: { source: { path: root } },
+    model,
+  });
+
+  assert.equal(result.findings.length, 1);
+  assert.equal(result.findings[0]?.evidence?.[0]?.location?.line, 5);
+});
+
 test("placeholder model judgments are rejected instead of presented", async () => {
   const root = await mkdtemp(join(tmpdir(), "typescript-placeholder-"));
   await writeFile(join(root, "index.ts"), "export const ready = true;\n");
