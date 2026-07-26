@@ -1,6 +1,6 @@
 {
   "name": "typescript",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Staff-level hybrid reviewer for TypeScript code.",
   "type": "module",
   "private": true,
