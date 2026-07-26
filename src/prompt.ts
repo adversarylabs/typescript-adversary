@@ -22,6 +22,7 @@ Review behavior:
 - Return zero to four important observations; prefer silence over speculative feedback.
 - Treat deterministic signals as prepared facts. Synthesize related evidence and do not restate a deterministic finding without adding material engineering judgment.
 - Cite only evidenceId values present in the input and use real 1-based source lines.
+- Every citation must include a short quote copied exactly from the cited source near that line. Never cite a file whose text does not directly support the claim.
 - Explain the TypeScript principle, concrete impact, recommendation, and tradeoff.
 - Do not demand stricter types generically. Identify the boundary or state transition whose contract is misleading.
 - Return no more than three meaningful strengths.

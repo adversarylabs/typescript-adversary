@@ -23,12 +23,14 @@
         {
           "evidenceId": "source:1",
           "line": 2,
-          "detail": "Config declares endpoint as a runtime URL object."
+          "detail": "Config declares endpoint as a runtime URL object.",
+          "quote": "endpoint: URL;"
         },
         {
           "evidenceId": "typescript.types.unvalidated-json:src/config.ts:7",
           "line": 7,
-          "detail": "JSON output is asserted directly to Config without construction or validation."
+          "detail": "JSON output is asserted directly to Config without construction or validation.",
+          "quote": "return JSON.parse(raw) as Config;"
         }
       ]
     }

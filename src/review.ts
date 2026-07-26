@@ -1,6 +1,7 @@
 import {
   formatOpinion,
   formatOpinionAsync,
+  ModelReviewError,
   ModelUnavailableError,
   type EvidenceInput,
   type RuleContext,
@@ -77,9 +78,15 @@ export async function runTypeScriptModelReview(
 
   const sources = new Map(discovery.sources.map((source) => [source.id, source]));
   const signalMap = new Map(signals.map((signal) => [signal.id, signal]));
-  const accepted = output.observations
-    .slice(0, MAX_MODEL_OBSERVATIONS)
+  const candidates = output.observations.slice(0, MAX_MODEL_OBSERVATIONS);
+  const accepted = candidates
     .filter((observation) => emitModelObservation(ctx, observation, sources, signalMap));
+  if (accepted.length !== candidates.length) {
+    throw new ModelReviewError(
+      "TypeScript model review cited evidence that was not present at the reported source line.",
+      { code: "invalid_model_evidence", retryable: false },
+    );
+  }
   const staticRisk = maxRisk(signals
     .filter((signal) => signal.disposition === "finding")
     .map((signal) => signal.severity));
@@ -98,7 +105,18 @@ export async function runTypeScriptModelReview(
   });
   for (const [index, strength] of output.strengths.slice(0, 3).entries()) {
     const evidence = strength.evidenceIds
-      .map((id) => evidenceById(id, 1, "Supporting TypeScript evidence.", sources, signalMap))
+      .map((id) => {
+        const source = sources.get(id);
+        if (source !== undefined) {
+          const quote = source.lines.find((line) => line.trim() !== "")?.trim() ?? "";
+          const line = Math.max(1, source.lines.findIndex((item) => item.trim() !== "") + 1);
+          return evidenceById(id, line, "Supporting TypeScript evidence.", quote, sources, signalMap);
+        }
+        const signal = signalMap.get(id);
+        return signal === undefined
+          ? undefined
+          : evidenceById(id, signal.line, "Supporting TypeScript evidence.", signal.snippet, sources, signalMap);
+      })
       .filter((item): item is EvidenceInput => item !== undefined);
     ctx.review.positive({
       key: `typescript.strength.${index + 1}`,
@@ -126,7 +144,14 @@ function emitModelObservation(
   signals: ReadonlyMap<string, DeterministicSignal>,
 ): boolean {
   const evidence = observation.evidence
-    .map((item) => evidenceById(item.evidenceId, item.line, item.detail, sources, signals))
+    .map((item) => evidenceById(
+      item.evidenceId,
+      item.line,
+      item.detail,
+      item.quote,
+      sources,
+      signals,
+    ))
     .filter((item): item is EvidenceInput => item !== undefined)
     .slice(0, 8);
   if (evidence.length === 0) return false;
@@ -166,14 +191,19 @@ function evidenceById(
   id: string,
   requestedLine: number,
   detail: string,
+  quote: string,
   sources: ReadonlyMap<string, SourceFile>,
   signals: ReadonlyMap<string, DeterministicSignal>,
 ): EvidenceInput | undefined {
+  const exactQuote = quote.trim();
+  if (exactQuote === "") return undefined;
   const source = sources.get(id);
   if (source !== undefined) {
     if (!Number.isInteger(requestedLine) || requestedLine < 1 || requestedLine > source.lines.length) {
       return undefined;
     }
+    const nearby = source.lines.slice(Math.max(0, requestedLine - 3), requestedLine + 2).join("\n");
+    if (!nearby.includes(exactQuote)) return undefined;
     return {
       location: { file: source.path, line: requestedLine },
       message: detail,
@@ -183,7 +213,7 @@ function evidenceById(
     };
   }
   const signal = signals.get(id);
-  if (signal === undefined) return undefined;
+  if (signal === undefined || !signal.snippet.includes(exactQuote)) return undefined;
   return {
     location: { file: signal.path, line: signal.line },
     message: detail,

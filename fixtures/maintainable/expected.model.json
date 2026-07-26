@@ -23,7 +23,8 @@
         {
           "evidenceId": "source:1",
           "line": 1,
-          "detail": "The exported Result type parameterizes only the success value."
+          "detail": "The exported Result type parameterizes only the success value.",
+          "quote": "export type Result<T> ="
         }
       ]
     }

@@ -97,9 +97,12 @@
                 },
                 "detail": {
                   "type": "string"
+                },
+                "quote": {
+                  "type": "string"
                 }
               },
-              "required": ["evidenceId", "line", "detail"]
+              "required": ["evidenceId", "line", "detail", "quote"]
             }
           }
         },
