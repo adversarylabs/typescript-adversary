@@ -1,0 +1,75 @@
+{
+  "assessment": {
+    "risk": "low",
+    "summary": "Ready with minor improvements — The small Result abstraction narrows cleanly and preserves failure identity; a generic error parameter would make the public contract more reusable."
+  },
+  "positives": [
+    {
+      "key": "typescript.strength.1",
+      "summary": "The discriminant supports direct narrowing without assertions or optional fields.",
+      "evidence": [
+        {
+          "location": {
+            "file": "src/result.ts",
+            "line": 1
+          },
+          "message": "Supporting TypeScript evidence.",
+          "snippet": "export type Result<T> =\n  | { ok: true; value: T }",
+          "data": {
+            "evidenceId": "source:1",
+            "status": "changed"
+          }
+        }
+      ],
+      "metadata": {
+        "source": "model"
+      }
+    }
+  ],
+  "observations": [],
+  "findings": [
+    {
+      "id": "finding-0db331cb",
+      "ruleId": "typescript.model.api-design",
+      "groupKey": "typescript.model.fixed-error-type",
+      "title": "Fixed Result error type",
+      "category": "api-design",
+      "severity": "low",
+      "confidence": "high",
+      "summary": "Result is generic over its success value but permanently fixes failures to Error.",
+      "whyItMatters": "A reusable generic abstraction should parameterize the dimensions callers need to preserve. Callers with structured domain failures must erase them or create a parallel Result type.",
+      "impact": "Callers with structured domain failures must erase them or create a parallel Result type.",
+      "evidence": [
+        {
+          "location": {
+            "file": "src/result.ts",
+            "line": 1
+          },
+          "message": "The exported Result type parameterizes only the success value.",
+          "snippet": "export type Result<T> =\n  | { ok: true; value: T }"
+        }
+      ],
+      "recommendation": "Consider Result<T, E = Error> if this abstraction is intended to cross package boundaries. The current form is simpler and is reasonable if Error is an intentional package-wide policy.",
+      "remediation": {
+        "complexity": "small"
+      },
+      "tags": [
+        "api-design",
+        "model-backed",
+        "typescript"
+      ],
+      "metadata": {
+        "source": "model",
+        "observationId": "fixed-error-type"
+      }
+    }
+  ],
+  "opinion": {
+    "ship": true,
+    "summary": "I would merge this change as-is."
+  },
+  "suppressed": {
+    "observations": 0,
+    "findings": 0
+  }
+}

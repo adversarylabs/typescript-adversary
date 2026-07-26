@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assessment": {
+    "verdict": "async-correctness-concerns",
+    "risk": "high",
+    "ship": false,
+    "summary": "The exported promise resolves before any of the per-job work is guaranteed to complete.",
+    "primaryConcern": "discarded asynchronous callback work"
+  },
+  "observations": [],
+  "strengths": []
+}

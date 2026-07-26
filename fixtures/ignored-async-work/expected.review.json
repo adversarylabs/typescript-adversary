@@ -1,0 +1,50 @@
+{
+  "assessment": {
+    "risk": "high",
+    "summary": "Async correctness concerns — The exported promise resolves before any of the per-job work is guaranteed to complete."
+  },
+  "positives": [],
+  "observations": [],
+  "findings": [
+    {
+      "id": "finding-f069eeba",
+      "ruleId": "typescript.async.ignored-foreach",
+      "groupKey": "typescript.async.ignored-foreach",
+      "title": "Async work is discarded by forEach",
+      "category": "async-correctness",
+      "severity": "high",
+      "confidence": "high",
+      "summary": "An async callback is passed to forEach, which does not observe or await the returned promises.",
+      "whyItMatters": "The containing operation can complete before the callback work, and callback rejections can escape the intended error path.",
+      "evidence": [
+        {
+          "location": {
+            "file": "src/jobs.ts",
+            "line": 9
+          },
+          "message": "An async callback is passed to forEach, which does not observe or await the returned promises.",
+          "data": {
+            "signalId": "typescript.async.ignored-foreach:src/jobs.ts:9"
+          }
+        }
+      ],
+      "recommendation": "Use an awaited loop for ordered work or await Promise.all over an explicit map for intentional concurrency.",
+      "remediation": {
+        "complexity": "small"
+      },
+      "tags": [
+        "async-correctness",
+        "deterministic",
+        "typescript"
+      ]
+    }
+  ],
+  "opinion": {
+    "ship": false,
+    "summary": "I would address discarded asynchronous callback work before merging."
+  },
+  "suppressed": {
+    "observations": 0,
+    "findings": 0
+  }
+}

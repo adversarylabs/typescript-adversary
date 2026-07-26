@@ -1,0 +1,171 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "description": "Protocol version; always 1.",
+      "type": "integer",
+      "enum": [1]
+    },
+    "assessment": {
+      "description": "The review's substantive overall TypeScript judgment.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "verdict": {
+          "description": "The closest calibrated overall verdict.",
+          "type": "string",
+          "enum": [
+            "excellent-typescript",
+            "ready-with-minor-improvements",
+            "async-correctness-concerns",
+            "type-design-concerns",
+            "module-boundary-concerns",
+            "significant-maintainability-concerns"
+          ]
+        },
+        "risk": {
+          "description": "Highest engineering risk supported by accepted evidence.",
+          "type": "string",
+          "enum": ["none", "low", "medium", "high", "critical"]
+        },
+        "ship": {
+          "description": "Whether the implementation should be approved as-is.",
+          "type": "boolean"
+        },
+        "summary": {
+          "description": "A concrete multi-sentence overall assessment grounded in the prepared TypeScript evidence; never a placeholder.",
+          "type": "string"
+        },
+        "primaryConcern": {
+          "description": "Empty when ship is true; otherwise a short noun phrase naming the primary concern.",
+          "type": "string"
+        }
+      },
+      "required": ["verdict", "risk", "ship", "summary", "primaryConcern"]
+    },
+    "observations": {
+      "description": "Zero to four important, actionable TypeScript observations.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Stable short identifier within this response.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Concise engineering concern, not a sentence or placeholder.",
+            "type": "string"
+          },
+          "category": {
+            "description": "Owned TypeScript review category.",
+            "type": "string",
+            "enum": [
+              "async-correctness",
+              "type-system",
+              "api-design",
+              "module-boundaries",
+              "runtime-type-alignment",
+              "maintainability"
+            ]
+          },
+          "severity": {
+            "description": "Impact if the concern remains.",
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "confidence": {
+            "description": "How directly the cited evidence supports the conclusion.",
+            "type": "string",
+            "enum": ["medium", "high"]
+          },
+          "principle": {
+            "description": "Specific TypeScript engineering principle involved.",
+            "type": "string"
+          },
+          "summary": {
+            "description": "What the implementation does and why it is problematic.",
+            "type": "string"
+          },
+          "impact": {
+            "description": "Concrete correctness, API, runtime, or maintenance consequence.",
+            "type": "string"
+          },
+          "recommendation": {
+            "description": "Specific actionable change; never 'no action needed'.",
+            "type": "string"
+          },
+          "tradeoffs": {
+            "description": "Relevant cost or alternative, or an empty string when none.",
+            "type": "string"
+          },
+          "evidence": {
+            "description": "Direct citations that prove the observation.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "evidenceId": {
+                  "description": "An exact source or deterministic signal ID from the input.",
+                  "type": "string"
+                },
+                "line": {
+                  "description": "Real 1-based source line.",
+                  "type": "integer"
+                },
+                "detail": {
+                  "description": "How this citation supports the observation.",
+                  "type": "string"
+                },
+                "quote": {
+                  "description": "Short exact text copied from the cited source near the line.",
+                  "type": "string"
+                }
+              },
+              "required": ["evidenceId", "line", "detail", "quote"]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category",
+          "severity",
+          "confidence",
+          "principle",
+          "summary",
+          "impact",
+          "recommendation",
+          "tradeoffs",
+          "evidence"
+        ]
+      }
+    },
+    "strengths": {
+      "description": "Zero to three meaningful TypeScript strengths.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "summary": {
+            "description": "Concrete strength demonstrated by prepared evidence.",
+            "type": "string"
+          },
+          "evidenceIds": {
+            "description": "Supporting source or deterministic signal IDs from the input.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["summary", "evidenceIds"]
+      }
+    }
+  },
+  "required": ["schemaVersion", "assessment", "observations", "strengths"]
+}
