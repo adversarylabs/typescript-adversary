@@ -60,8 +60,10 @@ test("model observations that recommend no action do not become findings", async
 test("placeholder model judgments are rejected instead of presented", async () => {
   const root = await mkdtemp(join(tmpdir(), "typescript-placeholder-"));
   await writeFile(join(root, "index.ts"), "export const ready = true;\n");
+  let calls = 0;
   const model: ReviewModel = {
     async review<T>() {
+      calls += 1;
       return {
         output: {
           schemaVersion: 1,
@@ -86,4 +88,43 @@ test("placeholder model judgments are rejected instead of presented", async () =
     (error: unknown) =>
       error instanceof ModelReviewError && error.code === "invalid_model_judgment",
   );
+  assert.equal(calls, 2);
+});
+
+test("a placeholder first judgment gets one bounded repair attempt", async () => {
+  const root = await mkdtemp(join(tmpdir(), "typescript-repair-"));
+  await writeFile(join(root, "index.ts"), "export const ready = true;\n");
+  let calls = 0;
+  const model: ReviewModel = {
+    async review<T>(request: ModelReviewRequest) {
+      calls += 1;
+      if (calls === 2) assert.match(request.prompt, /REPAIR REQUIREMENT/);
+      return {
+        output: {
+          schemaVersion: 1,
+          assessment: {
+            verdict: "excellent-typescript",
+            risk: "none",
+            ship: true,
+            summary: calls === 1
+              ? "summary"
+              : "The implementation exposes one small, coherent TypeScript declaration.",
+            primaryConcern: "",
+          },
+          observations: [],
+          strengths: [],
+        } as T,
+        provider: "fixture",
+        model: "fixture",
+      };
+    },
+  };
+
+  const result = await createApp().run({
+    input: { source: { path: root } },
+    model,
+  });
+
+  assert.equal(calls, 2);
+  assert.equal(result.opinion?.ship, true);
 });
