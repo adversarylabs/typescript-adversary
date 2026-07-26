@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assessment": {
+    "verdict": "module-boundary-concerns",
+    "risk": "medium",
+    "ship": false,
+    "summary": "The package asks Node to interpret output as ESM while the compiler is configured to emit CommonJS.",
+    "primaryConcern": "the contradictory module configuration"
+  },
+  "observations": [],
+  "strengths": []
+}

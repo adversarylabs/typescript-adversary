@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "assessment": {
+    "verdict": "type-design-concerns",
+    "risk": "high",
+    "ship": false,
+    "summary": "The loader promises a validated Config while returning unchecked JSON whose endpoint cannot be a URL instance.",
+    "primaryConcern": "the unchecked configuration boundary"
+  },
+  "observations": [
+    {
+      "id": "unchecked-config",
+      "title": "Unchecked configuration boundary",
+      "category": "runtime-type-alignment",
+      "severity": "high",
+      "confidence": "high",
+      "principle": "A public TypeScript return type should describe the runtime value the boundary actually constructs.",
+      "summary": "loadConfig asserts arbitrary JSON to Config even though JSON parsing cannot construct the declared URL instance.",
+      "impact": "Callers receive a string while the compiler permits URL methods, and malformed retry values flow into arithmetic as trusted numbers.",
+      "recommendation": "Parse into unknown, validate the primitive fields, and construct URL before returning Config.",
+      "tradeoffs": "Boundary validation adds code, but it centralizes conversion and lets downstream code rely on the exported contract.",
+      "evidence": [
+        {
+          "evidenceId": "source:1",
+          "line": 2,
+          "detail": "Config declares endpoint as a runtime URL object."
+        },
+        {
+          "evidenceId": "typescript.types.unvalidated-json:src/config.ts:7",
+          "line": 7,
+          "detail": "JSON output is asserted directly to Config without construction or validation."
+        }
+      ]
+    }
+  ],
+  "strengths": [
+    {
+      "summary": "Configuration parsing is localized behind one exported boundary.",
+      "evidenceIds": ["source:1"]
+    }
+  ]
+}

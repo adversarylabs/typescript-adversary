@@ -1,0 +1,26 @@
+{
+  "name": "typescript",
+  "version": "0.0.1",
+  "description": "Staff-level hybrid reviewer for TypeScript code.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adversarylabs/typescript-adversary.git"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit && node scripts/build.mjs",
+    "prepare": "npm run build",
+    "test": "npm run build && tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@adversarylabs/sdk": "0.1.13",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "esbuild": "^0.28.1",
+    "tsx": "^4.21.0"
+  }
+}

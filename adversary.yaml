@@ -1,0 +1,50 @@
+name: typescript
+version: 0.0.1
+description: Reviews TypeScript correctness, type design, async lifecycles, module boundaries, and runtime alignment.
+
+triggers:
+  manual: true
+  files_changed:
+    - "*.ts"
+    - "**/*.ts"
+    - "*.tsx"
+    - "**/*.tsx"
+    - "*.mts"
+    - "**/*.mts"
+    - "*.cts"
+    - "**/*.cts"
+    - "package.json"
+    - "tsconfig.json"
+
+detection:
+  files:
+    - "*.ts"
+    - "**/*.ts"
+    - "*.tsx"
+    - "**/*.tsx"
+    - "*.mts"
+    - "**/*.mts"
+    - "*.cts"
+    - "**/*.cts"
+    - "package.json"
+    - "tsconfig.json"
+
+runtime:
+  name: node
+  version: "22"
+  command:
+    - dist/index.js
+
+permissions:
+  enforcement: advisory
+  filesystem:
+    read:
+      - .
+    write: []
+  network: false
+  model: true
+  environment:
+    allow: []
+
+findings:
+  format: adversary.review.v1

@@ -1,0 +1,60 @@
+{
+  "assessment": {
+    "risk": "medium",
+    "summary": "Module boundary concerns — The package asks Node to interpret output as ESM while the compiler is configured to emit CommonJS."
+  },
+  "positives": [],
+  "observations": [],
+  "findings": [
+    {
+      "id": "finding-d043c9fa",
+      "ruleId": "typescript.modules.incompatible-config",
+      "groupKey": "typescript.modules.incompatible-config",
+      "title": "Package and compiler module contracts disagree",
+      "category": "module-boundaries",
+      "severity": "medium",
+      "confidence": "high",
+      "summary": "package.json declares ESM while TypeScript is configured to emit CommonJS.",
+      "whyItMatters": "Node interprets emitted JavaScript using the package contract, so CommonJS output can fail at startup or expose the wrong module shape.",
+      "evidence": [
+        {
+          "location": {
+            "file": "package.json",
+            "line": 3
+          },
+          "message": "package.json declares ESM while TypeScript is configured to emit CommonJS.",
+          "data": {
+            "signalId": "typescript.modules.incompatible-config:package.json:3"
+          }
+        },
+        {
+          "location": {
+            "file": "tsconfig.json",
+            "line": 3
+          },
+          "message": "package.json declares ESM while TypeScript is configured to emit CommonJS.",
+          "data": {
+            "signalId": "typescript.modules.incompatible-config:tsconfig.json:3"
+          }
+        }
+      ],
+      "recommendation": "Align the compiler module mode with the package's Node runtime contract and validate the built entrypoint.",
+      "remediation": {
+        "complexity": "small"
+      },
+      "tags": [
+        "deterministic",
+        "module-boundaries",
+        "typescript"
+      ]
+    }
+  ],
+  "opinion": {
+    "ship": false,
+    "summary": "I would address the contradictory module configuration before merging."
+  },
+  "suppressed": {
+    "observations": 0,
+    "findings": 0
+  }
+}

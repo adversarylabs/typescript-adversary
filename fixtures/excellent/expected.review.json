@@ -1,0 +1,60 @@
+{
+  "assessment": {
+    "risk": "none",
+    "summary": "Excellent TypeScript — The implementation uses a discriminated union honestly, enforces exhaustiveness, and preserves the async completion contract."
+  },
+  "positives": [
+    {
+      "key": "typescript.strength.1",
+      "summary": "The exhaustive switch makes future Message variants a compile-time obligation.",
+      "evidence": [
+        {
+          "location": {
+            "file": "src/message.ts",
+            "line": 1
+          },
+          "message": "Supporting TypeScript evidence.",
+          "snippet": "export type Message =\n  | { kind: \"email\"; address: string; subject: string }",
+          "data": {
+            "evidenceId": "source:1",
+            "status": "changed"
+          }
+        }
+      ],
+      "metadata": {
+        "source": "model"
+      }
+    },
+    {
+      "key": "typescript.strength.2",
+      "summary": "The public delivery API returns the promise representing completion.",
+      "evidence": [
+        {
+          "location": {
+            "file": "src/message.ts",
+            "line": 1
+          },
+          "message": "Supporting TypeScript evidence.",
+          "snippet": "export type Message =\n  | { kind: \"email\"; address: string; subject: string }",
+          "data": {
+            "evidenceId": "source:1",
+            "status": "changed"
+          }
+        }
+      ],
+      "metadata": {
+        "source": "model"
+      }
+    }
+  ],
+  "observations": [],
+  "findings": [],
+  "opinion": {
+    "ship": true,
+    "summary": "I would merge this change as-is."
+  },
+  "suppressed": {
+    "observations": 0,
+    "findings": 0
+  }
+}
