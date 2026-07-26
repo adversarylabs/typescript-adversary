@@ -19,7 +19,14 @@ test("source detection covers TypeScript variants without generated dependencies
   for (const path of ["index.ts", "src/view.tsx", "src/worker.mts", "src/config.cts", "types/api.d.ts"]) {
     assert.equal(isTypeScriptSource(path), true, path);
   }
-  for (const path of ["src/app.js", "node_modules/pkg/index.ts", "dist/index.ts", "src/api.generated.ts"]) {
+  for (const path of [
+    "src/app.js",
+    "node_modules/pkg/index.ts",
+    "dist/index.ts",
+    "fixtures/broken/index.ts",
+    "testdata/sample.ts",
+    "src/api.generated.ts",
+  ]) {
     assert.equal(isTypeScriptSource(path), false, path);
   }
 });

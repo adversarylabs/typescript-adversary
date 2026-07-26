@@ -14,7 +14,8 @@ const MAX_FILES = 36;
 const MAX_FILE_CHARACTERS = 12_000;
 const MAX_TOTAL_CHARACTERS = 220_000;
 const ignored = new Set([
-  ".git", ".next", "build", "coverage", "dist", "generated", "node_modules", "target", "vendor",
+  ".git", ".next", "__fixtures__", "build", "coverage", "dist", "fixture", "fixtures",
+  "generated", "node_modules", "target", "testdata", "vendor",
 ]);
 
 function normalize(path: string): string {
