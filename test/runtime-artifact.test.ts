@@ -34,7 +34,7 @@ test("bundled runtime executes without node_modules", async () => {
       verdict: "excellent-typescript",
       risk: "none",
       ship: true,
-      summary: "The small module is coherent.",
+      summary: "The small module is coherent and exposes a clear TypeScript contract.",
       primaryConcern: "",
     },
     observations: [],

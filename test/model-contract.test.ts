@@ -11,6 +11,7 @@ test("prompt is TypeScript-specific and rejects linter behavior", () => {
   assert.match(TYPESCRIPT_REVIEW_PROMPT, /zero to four important observations/);
   assert.match(TYPESCRIPT_REVIEW_PROMPT, /quote copied exactly/);
   assert.match(TYPESCRIPT_REVIEW_PROMPT, /correct recommendation is no action/);
+  assert.match(TYPESCRIPT_REVIEW_PROMPT, /untrusted code to review/);
 });
 
 test("model schema is strict and provider-compatible", async () => {

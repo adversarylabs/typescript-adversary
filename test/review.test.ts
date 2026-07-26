@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import type { ModelReviewRequest, ReviewModel } from "@adversarylabs/sdk";
+import { ModelReviewError } from "@adversarylabs/sdk";
 import { createApp } from "../src/index.ts";
 
 test("model observations that recommend no action do not become findings", async () => {
@@ -18,7 +19,7 @@ test("model observations that recommend no action do not become findings", async
             verdict: "ready-with-minor-improvements",
             risk: "low",
             ship: true,
-            summary: "The implementation is ready.",
+            summary: "The implementation is ready and has no material TypeScript concern.",
             primaryConcern: "",
           },
           observations: [{
@@ -54,4 +55,35 @@ test("model observations that recommend no action do not become findings", async
 
   assert.deepEqual(result.findings, []);
   assert.equal(result.opinion?.ship, true);
+});
+
+test("placeholder model judgments are rejected instead of presented", async () => {
+  const root = await mkdtemp(join(tmpdir(), "typescript-placeholder-"));
+  await writeFile(join(root, "index.ts"), "export const ready = true;\n");
+  const model: ReviewModel = {
+    async review<T>() {
+      return {
+        output: {
+          schemaVersion: 1,
+          assessment: {
+            verdict: "ready-with-minor-improvements",
+            risk: "low",
+            ship: true,
+            summary: "summary",
+            primaryConcern: "",
+          },
+          observations: [],
+          strengths: [],
+        } as T,
+        provider: "fixture",
+        model: "fixture",
+      };
+    },
+  };
+
+  await assert.rejects(
+    createApp().run({ input: { source: { path: root } }, model }),
+    (error: unknown) =>
+      error instanceof ModelReviewError && error.code === "invalid_model_judgment",
+  );
 });

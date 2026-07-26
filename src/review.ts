@@ -75,6 +75,7 @@ export async function runTypeScriptModelReview(
     }
     throw error;
   }
+  assertSubstantiveOutput(output);
 
   const sources = new Map(discovery.sources.map((source) => [source.id, source]));
   const signalMap = new Map(signals.map((signal) => [signal.id, signal]));
@@ -254,6 +255,34 @@ function maxRisk(values: Risk[]): Risk {
 function isActionable(recommendation: string): boolean {
   return !/^\s*(?:no (?:action|change)s? (?:is |are )?(?:needed|required)|leave (?:this|it) as-is|keep (?:this|it) as-is)\b/i
     .test(recommendation);
+}
+
+function assertSubstantiveOutput(output: TypeScriptModelOutput): void {
+  requireSubstantive(output.assessment.summary, 30, "assessment.summary");
+  for (const [index, observation] of output.observations.entries()) {
+    requireSubstantive(observation.title, 6, `observations[${index}].title`);
+    requireSubstantive(observation.summary, 20, `observations[${index}].summary`);
+    requireSubstantive(observation.principle, 15, `observations[${index}].principle`);
+    requireSubstantive(observation.impact, 15, `observations[${index}].impact`);
+    requireSubstantive(observation.recommendation, 15, `observations[${index}].recommendation`);
+  }
+  for (const [index, strength] of output.strengths.entries()) {
+    requireSubstantive(strength.summary, 15, `strengths[${index}].summary`);
+  }
+}
+
+function requireSubstantive(text: string, minimum: number, field: string): void {
+  const normalized = text.trim();
+  if (
+    normalized.length < minimum ||
+    /^(?:assessment|detail|impact|none|principle|quote|recommendation|string|summary|title|tradeoffs?)$/i
+      .test(normalized)
+  ) {
+    throw new ModelReviewError(
+      `TypeScript model review returned a placeholder or empty ${field}.`,
+      { code: "invalid_model_judgment", retryable: true },
+    );
+  }
 }
 
 function staticConcern(signals: DeterministicSignal[]): string | undefined {
