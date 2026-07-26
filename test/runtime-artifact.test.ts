@@ -9,6 +9,31 @@ import type { TypeScriptModelOutput } from "../src/types.ts";
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 
+test("package intent excludes authoring inputs but retains runtime assets", async () => {
+  const ignored = new Set(
+    (await readFile(join(projectRoot, ".adversaryignore"), "utf8"))
+      .split(/\r?\n/)
+      .map((entry) => entry.trim())
+      .filter(Boolean),
+  );
+
+  for (const authoringInput of [
+    "src/",
+    "test/",
+    "fixtures/",
+    "scripts/",
+    ".depot/",
+    "tsconfig.json",
+    "AGENTS.md",
+    "CHECKS.md",
+  ]) {
+    assert.equal(ignored.has(authoringInput), true, `${authoringInput} should not ship`);
+  }
+  for (const runtimeAsset of ["dist/", "schemas/", "adversary.yaml", "package.json", "README.md", "LICENSE"]) {
+    assert.equal(ignored.has(runtimeAsset), false, `${runtimeAsset} must remain packageable`);
+  }
+});
+
 test("bundled runtime executes without node_modules", async () => {
   const artifact = await mkdtemp(join(tmpdir(), "typescript-artifact-"));
   const target = await mkdtemp(join(tmpdir(), "typescript-target-"));
