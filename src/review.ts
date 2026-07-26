@@ -78,7 +78,9 @@ export async function runTypeScriptModelReview(
 
   const sources = new Map(discovery.sources.map((source) => [source.id, source]));
   const signalMap = new Map(signals.map((signal) => [signal.id, signal]));
-  const candidates = output.observations.slice(0, MAX_MODEL_OBSERVATIONS);
+  const candidates = output.observations
+    .slice(0, MAX_MODEL_OBSERVATIONS)
+    .filter((observation) => isActionable(observation.recommendation));
   const accepted = candidates
     .filter((observation) => emitModelObservation(ctx, observation, sources, signalMap));
   if (accepted.length !== candidates.length) {
@@ -247,6 +249,11 @@ function applyDeterministicAssessment(
 
 function maxRisk(values: Risk[]): Risk {
   return values.reduce<Risk>((best, current) => rank[current] > rank[best] ? current : best, "none");
+}
+
+function isActionable(recommendation: string): boolean {
+  return !/^\s*(?:no (?:action|change)s? (?:is |are )?(?:needed|required)|leave (?:this|it) as-is|keep (?:this|it) as-is)\b/i
+    .test(recommendation);
 }
 
 function staticConcern(signals: DeterministicSignal[]): string | undefined {

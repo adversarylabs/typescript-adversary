@@ -25,6 +25,7 @@ Review behavior:
 - Every citation must include a short quote copied exactly from the cited source near that line. Never cite a file whose text does not directly support the claim.
 - Explain the TypeScript principle, concrete impact, recommendation, and tradeoff.
 - Do not demand stricter types generically. Identify the boundary or state transition whose contract is misleading.
+- Do not emit an observation when the correct recommendation is no action, no change, keep as-is, or merely optional ceremony. Put meaningful good judgment in strengths instead.
 - Return no more than three meaningful strengths.
 - primaryConcern must be empty when ship=true. Otherwise use a short noun phrase suitable after "I would address", with no terminal punctuation.
 

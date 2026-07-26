@@ -10,6 +10,7 @@ test("prompt is TypeScript-specific and rejects linter behavior", () => {
   assert.match(TYPESCRIPT_REVIEW_PROMPT, /HTTP and database design/);
   assert.match(TYPESCRIPT_REVIEW_PROMPT, /zero to four important observations/);
   assert.match(TYPESCRIPT_REVIEW_PROMPT, /quote copied exactly/);
+  assert.match(TYPESCRIPT_REVIEW_PROMPT, /correct recommendation is no action/);
 });
 
 test("model schema is strict and provider-compatible", async () => {
