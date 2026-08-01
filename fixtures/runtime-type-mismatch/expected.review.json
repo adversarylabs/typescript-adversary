@@ -47,14 +47,6 @@
           },
           "message": "Config declares endpoint as a runtime URL object.",
           "snippet": "  retries: number;\n  endpoint: URL;\n}"
-        },
-        {
-          "location": {
-            "file": "src/config.ts",
-            "line": 7
-          },
-          "message": "JSON output is asserted directly to Config without construction or validation.",
-          "snippet": "export function loadConfig(raw: string): Config {\n  return JSON.parse(raw) as Config;\n}"
         }
       ],
       "recommendation": "Parse into unknown, validate the primitive fields, and construct URL before returning Config. Boundary validation adds code, but it centralizes conversion and lets downstream code rely on the exported contract.",

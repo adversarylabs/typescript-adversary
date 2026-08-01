@@ -42,8 +42,8 @@ const config = JSON.parse(raw) as Config;
 const forced = source as unknown as Config;
 `);
   assert.deepEqual(signals.map((signal) => signal.ruleId), [
-    "typescript.types.unvalidated-json",
-    "typescript.types.assertion-escape",
+    "typescript.boundary-cast",
+    "typescript.double-cast",
   ]);
   assert.equal(signals.every((signal) => signal.disposition === "context"), true);
 });

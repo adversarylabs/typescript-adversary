@@ -22,8 +22,11 @@ export interface DeterministicSignal {
     | "typescript.async.ignored-foreach"
     | "typescript.async.async-promise-executor"
     | "typescript.modules.incompatible-config"
-    | "typescript.types.assertion-escape"
-    | "typescript.types.unvalidated-json";
+    | "typescript.double-cast"
+    | "typescript.boundary-cast"
+    | "typescript.ts-ignore"
+    | "typescript.strict-disabled"
+    | "typescript.exported-any";
   disposition: "finding" | "context";
   category:
     | "async-correctness"

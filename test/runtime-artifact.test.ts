@@ -74,6 +74,6 @@ test("bundled runtime executes without node_modules", async () => {
     input: { source: { path: target } },
     model,
   });
-  assert.equal(result.adversary.name, "typescript");
+  assert.equal(result.adversary.name, "lang/typescript");
   assert.deepEqual(result.findings, []);
 });

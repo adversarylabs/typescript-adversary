@@ -71,6 +71,5 @@ jobs:
           cli-version: 2026.7.26
           path: .
           token: ${{ secrets.ADVERSARY_SERVICE_ACCOUNT_TOKEN }}
-          registry-namespace: adversarylabs
-          repository-name: ${{ steps.version.outputs.name }}
+          remote-reference: registry.adversarylabs.ai/${{ steps.version.outputs.name }}:${{ steps.version.outputs.version }}
           push-latest: true
