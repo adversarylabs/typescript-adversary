@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Adversary } from "@adversarylabs/sdk";
 import { analyzeTypeScript } from "./analyze.js";
 import { discoverSources } from "./discover.js";
+import { attachImportNavigation } from "./navigation.js";
 import { emitDeterministicSignals, runTypeScriptModelReview } from "./review.js";
 
 export function createApp(): Adversary {
@@ -18,6 +19,7 @@ export function createApp(): Adversary {
     const signals = analyzeTypeScript(discovery);
     ctx.summary.files_scanned = discovery.sources.length;
     emitDeterministicSignals(ctx, signals);
+    await attachImportNavigation(ctx, signals);
     await runTypeScriptModelReview(ctx, discovery, signals);
   });
   return app;
