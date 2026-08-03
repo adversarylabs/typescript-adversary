@@ -1,5 +1,5 @@
 name: lang/typescript
-version: 0.0.5
+version: 0.0.6
 description: Reviews TypeScript correctness, type design, async lifecycles, module boundaries, and runtime alignment.
 
 triggers:
