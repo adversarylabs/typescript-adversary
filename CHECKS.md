@@ -29,6 +29,17 @@ Public grounding: TypeScript handbook strictness docs, typescript-eslint guidanc
 
 ## Medium
 
+### `typescript.async.swallowed-awaited-rejection`
+
+| | |
+| --- | --- |
+| **What** | An awaited operation converts rejection into success with an empty catch handler |
+| **Why** | Readiness gates, assertions, and required work can fail while the enclosing async function continues as though the prerequisite succeeded |
+| **Looks for** | LLM-gated: `await promise.catch(() => {})`, with surrounding lifecycle context |
+| **Stays quiet when** | The handler logs, recovers, translates, or rethrows; the operation is clearly documented best-effort cleanup or teardown |
+| **Public examples** | [Vite maintainer review](https://github.com/vitejs/vite/pull/23077#discussion_r3663113957) |
+| **Remediation** | Let required failures reject, or implement an explicit recovery/fallback path |
+
 ### `typescript.strict-disabled`
 
 | | |

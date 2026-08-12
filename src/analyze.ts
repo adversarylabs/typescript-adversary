@@ -64,6 +64,19 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
         recommendation: "Remove the Promise constructor and return the async operation, or use a synchronous executor that explicitly wires resolution and rejection.",
       }));
     }
+    if (ts.isCallExpression(node) && isAwaitedEmptyCatch(node)) {
+      signals.push(signal(source, file, node, {
+        ruleId: "typescript.async.swallowed-awaited-rejection",
+        disposition: "context",
+        category: "async-correctness",
+        severity: "medium",
+        confidence: "high",
+        title: "Awaited operation silently discards its rejection",
+        summary: "An awaited operation appends an empty catch handler, converting rejection into apparent success.",
+        whyItMatters: "If the operation establishes readiness or performs required work, the enclosing function continues after failure with no signal that its prerequisite was not met.",
+        recommendation: "Let required failures reject, or handle the error explicitly with a real fallback, translated error, or documented best-effort path.",
+      }));
+    }
     if (ts.isAsExpression(node) && ts.isAsExpression(node.expression) &&
       (node.expression.type.kind === ts.SyntaxKind.UnknownKeyword ||
         node.expression.type.kind === ts.SyntaxKind.AnyKeyword)) {
@@ -189,6 +202,15 @@ function isAsyncFunction(node: ts.Expression | undefined): boolean {
   return node !== undefined &&
     (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) &&
     node.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword) === true;
+}
+
+function isAwaitedEmptyCatch(node: ts.CallExpression): boolean {
+  if (!ts.isAwaitExpression(node.parent) || !ts.isPropertyAccessExpression(node.expression) ||
+      node.expression.name.text !== "catch") return false;
+  const handler = node.arguments[0];
+  return handler !== undefined &&
+    (ts.isArrowFunction(handler) || ts.isFunctionExpression(handler)) &&
+    ts.isBlock(handler.body) && handler.body.statements.length === 0;
 }
 
 function signal(
