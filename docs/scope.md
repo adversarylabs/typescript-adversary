@@ -14,6 +14,7 @@ Review TypeScript correctness, type design, async lifecycles, module boundaries,
 
 - Type design holes that cause real bugs
 - Async lifecycle / unhandled rejections
+- Awaited failures silently converted into success
 - Module boundary mistakes
 - Runtime vs type mismatch
 

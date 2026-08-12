@@ -28,6 +28,7 @@ Review behavior:
 - Every citation must include a short quote copied exactly from the cited source near that line. Never cite a file whose text does not directly support the claim.
 - Explain the TypeScript principle, concrete impact, recommendation, and tradeoff.
 - Do not demand stricter types generically. Identify the boundary or state transition whose contract is misleading.
+- Treat an empty rejection handler on an awaited operation as actionable only when the operation gates readiness, assertions, or required work. Omit it when the surrounding code clearly establishes an intentional best-effort cleanup or teardown path.
 - Report present behavior, not a hypothetical future union member, possible schema drift, or a change that TypeScript would already reject at compile time.
 - If your own explanation says there is no current defect, no unsafe behavior today, or only a monitoring/process concern, omit the observation.
 - Different severity scales are not inherently inconsistent when they serve different inputs and converge on the same shipping decision.

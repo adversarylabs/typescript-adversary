@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { analyzeTypeScript } from "../src/analyze.ts";
 import type { Discovery } from "../src/types.ts";
@@ -54,5 +55,28 @@ async function run(items: string[]) {
   for (const item of items) await save(item);
   return new Promise(resolve => resolve());
 }`);
+  assert.deepEqual(signals, []);
+});
+
+test("prepares empty catch handlers on awaited operations for async judgment", async () => {
+  const content = await readFile(
+    new URL("./fixtures/swallowed-awaited-rejection/vulnerable.ts", import.meta.url),
+    "utf8",
+  );
+  const signals = analyze(content);
+  assert.deepEqual(signals.map((item) => ({ ruleId: item.ruleId, disposition: item.disposition })), [
+    {
+      ruleId: "typescript.async.swallowed-awaited-rejection",
+      disposition: "context",
+    },
+  ]);
+});
+
+test("does not prepare explicit recovery or detached best-effort rejection handlers", async () => {
+  const content = await readFile(
+    new URL("./fixtures/swallowed-awaited-rejection/clean.ts", import.meta.url),
+    "utf8",
+  );
+  const signals = analyze(content);
   assert.deepEqual(signals, []);
 });

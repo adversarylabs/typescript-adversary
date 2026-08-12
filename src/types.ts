@@ -21,6 +21,7 @@ export interface DeterministicSignal {
   ruleId:
     | "typescript.async.ignored-foreach"
     | "typescript.async.async-promise-executor"
+    | "typescript.async.swallowed-awaited-rejection"
     | "typescript.modules.incompatible-config"
     | "typescript.double-cast"
     | "typescript.boundary-cast"
