@@ -18,6 +18,7 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
 
   // CHECKS: typescript.ts-ignore
   source.lines.forEach((line, index) => {
+    if (!isEligibleLine(source, index + 1)) return;
     if (/@ts-ignore\b/.test(line) || (/@ts-nocheck\b/.test(line) && !/generated|\\.d\.ts/.test(source.path))) {
       signals.push({
         id: `typescript.ts-ignore:${source.path}:${index + 1}`,
@@ -39,7 +40,7 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
 
   function visit(node: ts.Node): void {
     if (ts.isCallExpression(node) && isForEach(node) && isAsyncFunction(node.arguments[0])) {
-      signals.push(signal(source, file, node, {
+      pushSignal(signals, source, file, [node.expression, asyncModifier(node.arguments[0])], {
         ruleId: "typescript.async.ignored-foreach",
         disposition: "finding",
         category: "async-correctness",
@@ -49,10 +50,10 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
         summary: "An async callback is passed to forEach, which does not observe or await the returned promises.",
         whyItMatters: "The containing operation can complete before the callback work, and callback rejections can escape the intended error path.",
         recommendation: "Use an awaited loop for ordered work or await Promise.all over an explicit map for intentional concurrency.",
-      }));
+      });
     }
     if (ts.isNewExpression(node) && isPromiseConstructor(node) && isAsyncFunction(node.arguments?.[0])) {
-      signals.push(signal(source, file, node, {
+      pushSignal(signals, source, file, [node.expression, asyncModifier(node.arguments?.[0])], {
         ruleId: "typescript.async.async-promise-executor",
         disposition: "finding",
         category: "async-correctness",
@@ -62,10 +63,13 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
         summary: "The Promise constructor receives an async executor whose returned promise is ignored by the constructor.",
         whyItMatters: "Exceptions after an await can reject the executor's hidden promise instead of the Promise being constructed.",
         recommendation: "Remove the Promise constructor and return the async operation, or use a synchronous executor that explicitly wires resolution and rejection.",
-      }));
+      });
     }
     if (ts.isCallExpression(node) && isAwaitedEmptyCatch(node)) {
-      signals.push(signal(source, file, node, {
+      pushSignal(signals, source, file, [
+        ts.isPropertyAccessExpression(node.expression) ? node.expression.name : node.expression,
+        node.arguments[0],
+      ], {
         ruleId: "typescript.async.swallowed-awaited-rejection",
         disposition: "context",
         category: "async-correctness",
@@ -75,12 +79,12 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
         summary: "An awaited operation appends an empty catch handler, converting rejection into apparent success.",
         whyItMatters: "If the operation establishes readiness or performs required work, the enclosing function continues after failure with no signal that its prerequisite was not met.",
         recommendation: "Let required failures reject, or handle the error explicitly with a real fallback, translated error, or documented best-effort path.",
-      }));
+      });
     }
     if (ts.isAsExpression(node) && ts.isAsExpression(node.expression) &&
       (node.expression.type.kind === ts.SyntaxKind.UnknownKeyword ||
         node.expression.type.kind === ts.SyntaxKind.AnyKeyword)) {
-      signals.push(signal(source, file, node, {
+      pushSignal(signals, source, file, [node.expression.type, node.type], {
         ruleId: "typescript.double-cast",
         disposition: "context",
         category: "type-system",
@@ -90,13 +94,13 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
         summary: "A value is cast through unknown or any before being asserted to another type.",
         whyItMatters: "The compiler can no longer prove that the source and target types overlap.",
         recommendation: "Restore a typed boundary or isolate and validate the conversion where the runtime representation is known.",
-      }));
+      });
     }
     if (ts.isAsExpression(node) && ts.isCallExpression(node.expression) &&
       ts.isPropertyAccessExpression(node.expression.expression) &&
       node.expression.expression.expression.getText(file) === "JSON" &&
       node.expression.expression.name.text === "parse") {
-      signals.push(signal(source, file, node, {
+      pushSignal(signals, source, file, [node.expression.expression.name, node.type], {
         ruleId: "typescript.boundary-cast",
         disposition: "context",
         category: "runtime-type-alignment",
@@ -106,7 +110,7 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
         summary: "JSON.parse output is immediately asserted to a compile-time type.",
         whyItMatters: "The assertion changes no runtime behavior, so external data can violate the type while appearing trusted downstream.",
         recommendation: "Validate the parsed value at the boundary or keep it unknown until narrowing establishes the required shape.",
-      }));
+      });
     }
     ts.forEachChild(node, visit);
   }
@@ -120,6 +124,7 @@ function moduleConfigurationSignals(discovery: Discovery): DeterministicSignal[]
         /["']strictNullChecks["']\s*:\s*false/.test(config.content) ||
         /["']noImplicitAny["']\s*:\s*false/.test(config.content)) {
       const line = config.lines.findIndex((l) => /strict|noImplicitAny|strictNullChecks/.test(l) && /false/.test(l)) + 1 || 1;
+      if (!isEligibleLine(config, line)) continue;
       out.push({
         id: `typescript.strict-disabled:${config.path}:${line}`,
         path: config.path,
@@ -177,7 +182,10 @@ function moduleConfigurationSignals(discovery: Discovery): DeterministicSignal[]
           snippet: config.lines.slice(Math.max(0, configLine - 2), configLine + 1)
             .join("\n").slice(0, 300),
         },
-      ]);
+      ].filter((signal) => {
+        const source = signal.path === pkg.path ? pkg : config;
+        return isEligibleLine(source, signal.line);
+      }));
     }
   } catch {
     return out;
@@ -204,6 +212,11 @@ function isAsyncFunction(node: ts.Expression | undefined): boolean {
     node.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword) === true;
 }
 
+function asyncModifier(node: ts.Expression | undefined): ts.Node | undefined {
+  if (node === undefined || (!ts.isArrowFunction(node) && !ts.isFunctionExpression(node))) return undefined;
+  return node.modifiers?.find((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword);
+}
+
 function isAwaitedEmptyCatch(node: ts.CallExpression): boolean {
   if (!ts.isAwaitExpression(node.parent) || !ts.isPropertyAccessExpression(node.expression) ||
       node.expression.name.text !== "catch") return false;
@@ -213,18 +226,54 @@ function isAwaitedEmptyCatch(node: ts.CallExpression): boolean {
     ts.isBlock(handler.body) && handler.body.statements.length === 0;
 }
 
-function signal(
+function pushSignal(
+  signals: DeterministicSignal[],
   source: SourceFile,
   file: ts.SourceFile,
-  node: ts.Node,
+  anchors: Array<ts.Node | undefined>,
   fields: Omit<DeterministicSignal, "id" | "path" | "line" | "snippet">,
-): DeterministicSignal {
-  const line = file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1;
-  return {
+): void {
+  const line = eligibleNodeAnchor(source, file, anchors);
+  if (line === undefined) return;
+  signals.push({
     ...fields,
     id: `${fields.ruleId}:${source.path}:${line}`,
     path: source.path,
     line,
     snippet: source.lines.slice(Math.max(0, line - 2), line + 1).join("\n").slice(0, 400),
-  };
+  });
+}
+
+function eligibleNodeAnchor(
+  source: SourceFile,
+  file: ts.SourceFile,
+  anchors: Array<ts.Node | undefined>,
+): number | undefined {
+  if (source.revision === "context") return undefined;
+  const concrete = anchors.filter((node): node is ts.Node => node !== undefined);
+  if (source.revision !== "modified") {
+    const first = concrete[0];
+    return first === undefined ? 1 : file.getLineAndCharacterOfPosition(first.getStart(file)).line + 1;
+  }
+  for (const node of concrete) {
+    const start = file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1;
+    const end = file.getLineAndCharacterOfPosition(Math.max(node.getStart(file), node.getEnd() - 1)).line + 1;
+    const line = eligibleAnchor(source, start, end);
+    if (line !== undefined) return line;
+  }
+  return undefined;
+}
+
+function eligibleAnchor(source: SourceFile, startLine: number, endLine: number): number | undefined {
+  if (source.revision === "context") return undefined;
+  if (source.revision !== "modified") return startLine;
+  for (let line = startLine; line <= endLine; line += 1) {
+    if (source.changedLines.has(line)) return line;
+  }
+  return undefined;
+}
+
+function isEligibleLine(source: SourceFile, line: number): boolean {
+  if (source.revision === "context") return false;
+  return source.revision !== "modified" || source.changedLines.has(line);
 }

@@ -13,6 +13,8 @@ function analyze(content: string) {
       id: "source:1",
       path: "src/sample.ts",
       status: "changed",
+      revision: "added",
+      changedLines: new Set<number>(),
       content,
       lines: content.split("\n"),
       truncated: false,

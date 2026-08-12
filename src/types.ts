@@ -4,6 +4,8 @@ export interface SourceFile {
   id: string;
   path: string;
   status: "changed" | "context";
+  revision: "added" | "modified" | "repository" | "context";
+  changedLines: Set<number>;
   content: string;
   lines: string[];
   truncated: boolean;
