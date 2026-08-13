@@ -48,7 +48,7 @@ test("bundled runtime executes without node_modules", async () => {
   const runtime = await import(pathToFileURL(entrypoint).href) as {
     createApp(): {
       run(options: { input: unknown; model: ReviewModel }): Promise<{
-        adversary: { name: string };
+        adversary: { name: string; version?: string };
         findings: unknown[];
       }>;
     };
@@ -75,5 +75,6 @@ test("bundled runtime executes without node_modules", async () => {
     model,
   });
   assert.equal(result.adversary.name, "lang/typescript");
+  assert.equal(result.adversary.version, "0.0.9");
   assert.deepEqual(result.findings, []);
 });
