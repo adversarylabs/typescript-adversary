@@ -1,28 +1,21 @@
 # TypeScript adversary
 
-`typescript` reviews TypeScript code as an experienced TypeScript engineer. It combines parser-backed observations with model reasoning to answer whether the implementation is correct, type-safe, maintainable, and honest about its runtime behavior.
+Reviews TypeScript correctness, type design, async lifecycles, module boundaries, and runtime alignment.
 
-Its authority includes async correctness, promise lifecycles, type-system quality, generics, discriminated unions, narrowing, module boundaries, public APIs, declaration quality, runtime/type mismatches, ESM/CommonJS behavior, package organization, and TypeScript-specific maintainability.
+## Goals
 
-It deliberately leaves HTTP design, database correctness, framework practices, business logic, and general security to specialist adversaries.
+The adversary is designed to produce a small number of high-confidence,
+actionable findings grounded in concrete repository evidence. Its review should
+be deterministic where possible, explicit about impact, and quiet when the
+available evidence does not justify a finding.
 
-## Development
+## Scope
 
-```sh
-npm ci
-npm test
-adversary validate .
-adversary pack --check .
-```
+It evaluates changed TypeScript code for type/runtime boundary alignment, strictness, exported API safety, suppression directives, and async lifecycle correctness.
 
-## Usage
+The complete detector or review inventory is maintained in
+[CHECKS.md](CHECKS.md).
 
-Model credentials remain CLI configuration:
+## Boundaries
 
-```sh
-adversary run . --path ../target \
-  --model-provider fireworks \
-  --model accounts/fireworks/models/your-model-id
-```
-
-The adversary prepares bounded evidence and emits no more than four model observations. The SDK owns finding synthesis, grouping, ranking, suppression, and scope-aware opinion language.
+It owns framework- or language-specific review in this domain. Infrastructure, CI, dependency-manager, and unrelated application concerns remain with specialist adversaries.
