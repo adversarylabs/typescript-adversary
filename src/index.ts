@@ -11,7 +11,7 @@ import { emitDeterministicSignals, runTypeScriptModelReview } from "./review.js"
 export function createApp(): Adversary {
   const app = new Adversary({
     name: "lang/typescript",
-    version: "0.0.9",
+    version: "0.0.11",
     review: { maximumFindings: 5, minimumConfidence: "medium" },
   });
 
