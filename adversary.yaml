@@ -1,4 +1,4 @@
-name: lang/typescript
+name: adversarylabs/lang/typescript
 version: 0.0.10
 description: Reviews TypeScript correctness, type design, async lifecycles, module boundaries, and runtime alignment.
 
