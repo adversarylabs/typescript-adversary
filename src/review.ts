@@ -8,6 +8,8 @@ import {
   type Severity,
 } from "@adversarylabs/sdk";
 import { buildTypeScriptModelRequest } from "./model-review.js";
+import { repairEvidence } from "./evidence-repair.js";
+import modelSchema from "../schemas/typescript-review.model.v1.schema.json" with { type: "json" };
 import type {
   DeterministicSignal,
   Discovery,
@@ -95,13 +97,17 @@ The previous attempt used placeholder or empty review prose. Produce a fresh, su
   const candidates = output.observations
     .slice(0, MAX_MODEL_OBSERVATIONS)
     .filter(isCurrentActionableConcern);
-  const accepted = candidates
+  const validEvidence = (item: ModelEvidence): boolean => evidenceById(item.evidenceId, item.line, item.detail, item.quote, sources, signalMap) !== undefined;
+  const missing = candidates.filter((observation) => !observation.evidence.some(validEvidence));
+  const repaired = await repairEvidence(ctx, missing, request.input,
+    modelSchema.properties.observations.items.properties.evidence, validEvidence);
+  const resolved = candidates.map((observation) => repaired.has(observation.id)
+    ? { ...observation, evidence: repaired.get(observation.id)! } : observation);
+  const accepted = resolved
     .filter((observation) => emitModelObservation(ctx, observation, sources, signalMap));
-  if (accepted.length !== candidates.length) {
-    throw new ModelReviewError(
-      "TypeScript model review cited evidence that was not present at the reported source line.",
-      { code: "invalid_model_evidence", retryable: false },
-    );
+  const withheld = resolved.filter((observation) => !accepted.includes(observation));
+  if (withheld.length > 0) {
+    ctx.review.observe({ key: "review.evidence-incomplete", summary: `${withheld.length} unsupported TypeScript candidates withheld after citation correction; supported findings are retained.`, metadata: { role: "context", observationIds: withheld.map((o) => o.id) } });
   }
   const staticRisk = maxRisk(signals
     .filter((signal) => signal.disposition === "finding")
@@ -117,7 +123,9 @@ The previous attempt used placeholder or empty review prose. Produce a fresh, su
 
   ctx.review.assessment({
     risk,
-    summary: modelObservationsWereRejected && accepted.length === 0 &&
+    summary: withheld.length > 0
+      ? "Partial TypeScript review — Unsupported candidates were withheld; supported findings are retained."
+      : modelObservationsWereRejected && accepted.length === 0 &&
         rank[staticRisk] < rank.medium
       ? "Ready with minor improvements — No material current TypeScript concern was supported by the prepared evidence."
       : `${verdicts[output.assessment.verdict]} — ${output.assessment.summary}`,
@@ -153,6 +161,10 @@ The previous attempt used placeholder or empty review prose. Produce a fresh, su
   const concern = accepted.length > 0
     ? output.assessment.primaryConcern.trim() || top?.title
     : staticConcern(signals);
+  if (withheld.length > 0) {
+    ctx.review.opinion({ summary: "Some TypeScript candidates could not be grounded in prepared source; no clean-review opinion." });
+    return;
+  }
   ctx.review.opinion(await formatOpinionAsync({
     ship,
     ...(ship || concern === undefined ? {} : { concern }),

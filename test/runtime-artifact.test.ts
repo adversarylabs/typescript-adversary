@@ -75,6 +75,7 @@ test("bundled runtime executes without node_modules", async () => {
     model,
   });
   assert.equal(result.adversary.name, "lang/typescript");
-  assert.equal(result.adversary.version, "0.0.11");
+  const metadata = JSON.parse(await readFile(join(projectRoot, "package.json"), "utf8"));
+  assert.equal(result.adversary.version, metadata.version);
   assert.deepEqual(result.findings, []);
 });

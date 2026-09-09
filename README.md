@@ -18,4 +18,10 @@ The complete detector or review inventory is maintained in
 
 ## Boundaries
 
+Unsupported model citations receive one bounded citation-only correction using
+the original prepared evidence. The claim is not regenerated and all returned
+references are checked again. If correction fails, that candidate is withheld;
+supported findings remain available, with an explicit incomplete-review warning
+and no clean/ship opinion. This does not relax evidence requirements.
+
 It owns framework- or language-specific review in this domain. Infrastructure, CI, dependency-manager, and unrelated application concerns remain with specialist adversaries.
