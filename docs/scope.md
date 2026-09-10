@@ -17,6 +17,7 @@ Review TypeScript correctness, type design, async lifecycles, module boundaries,
 - Awaited failures silently converted into success
 - Module boundary mistakes
 - Runtime vs type mismatch
+- Numeric conversions that silently change a proven accepted input value or erase invalid syntax before downstream validation
 
 ## Out of scope (not a miss for this adversary)
 
