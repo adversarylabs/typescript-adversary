@@ -82,3 +82,24 @@ test("does not prepare explicit recovery or detached best-effort rejection handl
   const signals = analyze(content);
   assert.deepEqual(signals, []);
 });
+
+// Facts are context only: the model must establish string semantics and consumer impact.
+test("prepares unreachable split fallback with its changed evidence", () => {
+  const signals = analyze(`function saveText(raw: string) {
+const lines = raw.split("\\n");
+save(lines.length > 0 ? lines : undefined);
+}`);
+  const signal = signals.find(s => s.ruleId === "typescript.split.empty-fallback");
+  assert.ok(signal);
+  assert.equal(signal.disposition, "context");
+  assert.equal(signal.line, 2);
+  assert.deepEqual("".split("\n"), [""]);
+});
+test("does not seed filtered splits, empty separators, zero limits or shadowed callbacks", () => {
+  for (const body of [
+    'const lines = raw.split("\\n").filter(Boolean); save(lines.length ? lines : undefined);',
+    'const lines = raw.split(""); save(lines.length ? lines : undefined);',
+    'const lines = raw.split("\\n", 0); save(lines.length ? lines : undefined);',
+    'const lines = raw.split("\\n"); queue((lines: string[]) => save(lines.length ? lines : undefined));',
+  ]) assert.equal(analyze(`function saveText(raw: string) { ${body} }`).some(s => s.ruleId === "typescript.split.empty-fallback"), false);
+});

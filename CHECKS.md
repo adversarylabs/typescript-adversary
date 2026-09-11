@@ -14,3 +14,7 @@
 ## Model-reviewed input conversion
 
 The model traces lossy numeric conversion only when the prepared input contract, conversion, and downstream acceptance prove a wrong-value outcome. Intentional truncation, raw-input grammar validation, and rejection before effects stay quiet. A missing radix, a `number` annotation, or NaN rejected by validation is insufficient. See [calibration examples](docs/lossy-numeric-conversion.md).
+
+## Miss-derived review boundary
+
+- Check text-to-list empty-input handling: splitting a string on a nonempty string separator without a zero limit yields at least one element, including [''] for empty input. A subsequent length > 0 or length truthiness check cannot implement an empty-input fallback on that unfiltered result. Trace the string receiver, split options, intervening transformations, and consumer contract. Report only when source proves empty or whitespace-only entries violate an established representation or make an intended absent-value branch unreachable with a user-visible effect. Cite the conversion and downstream contract; do not assume blank entries are invalid in every list. Stay quiet for intentional empty fields, meaningful empty-string separators or zero limits, filtering before the check, raw-input guards, custom split methods, or downstream normalization that satisfies the contract.

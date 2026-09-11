@@ -25,6 +25,7 @@ export interface DeterministicSignal {
     | "typescript.async.async-promise-executor"
     | "typescript.async.swallowed-awaited-rejection"
     | "typescript.modules.incompatible-config"
+    | "typescript.split.empty-fallback"
     | "typescript.double-cast"
     | "typescript.boundary-cast"
     | "typescript.ts-ignore"
