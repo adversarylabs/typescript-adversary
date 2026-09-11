@@ -112,3 +112,11 @@ test("split fallback covers module scope, truthiness and positive literal limits
     assert.equal(analyze(`const lines = "".split("\\n", ${limit}); save(lines.length ? lines : undefined);`).some(s => s.ruleId === "typescript.split.empty-fallback"), false);
   }
 });
+
+test("prepares adjacent if guards but never emits a native-string finding for custom split", () => {
+  assert.equal(analyze('const lines = "".split("\\n"); if (lines.length) save(lines); else save(undefined);').filter(s => s.ruleId === "typescript.split.empty-fallback").length, 1);
+  const signals = analyze('const lines = parser.split("\\n"); save(lines.length ? lines : undefined);');
+  assert.equal(signals.filter(s => s.ruleId === "typescript.split.empty-fallback").length, 1);
+  assert.ok(signals.every(s => s.disposition === "context"));
+  assert.match(signals[0]!.whyItMatters, /For a string receiver/);
+});

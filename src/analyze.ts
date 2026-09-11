@@ -52,8 +52,8 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
         const name = declaration.name.text;
         const inspect = (part: ts.Node): void => {
           if (ts.isFunctionLike(part)) return;
-          if (ts.isConditionalExpression(part)) {
-            const condition = part.condition;
+          if (ts.isConditionalExpression(part) || ts.isIfStatement(part)) {
+            const condition = ts.isIfStatement(part) ? part.expression : part.condition;
             const length = ts.isBinaryExpression(condition) && condition.operatorToken.kind === ts.SyntaxKind.GreaterThanToken &&
               ts.isNumericLiteral(condition.right) && condition.right.text === "0" ? condition.left : condition;
             if (ts.isPropertyAccessExpression(length) && ts.isIdentifier(length.expression) &&
