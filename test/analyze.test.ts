@@ -103,3 +103,12 @@ test("does not seed filtered splits, empty separators, zero limits or shadowed c
     'const lines = raw.split("\\n"); queue((lines: string[]) => save(lines.length ? lines : undefined));',
   ]) assert.equal(analyze(`function saveText(raw: string) { ${body} }`).some(s => s.ruleId === "typescript.split.empty-fallback"), false);
 });
+
+test("split fallback covers module scope, truthiness and positive literal limits", () => {
+  for (const guard of ["lines.length", "lines.length > 0"]) {
+    assert.equal(analyze(`const lines = "".split("\\n", 1); save(${guard} ? lines : undefined);`).filter(s => s.ruleId === "typescript.split.empty-fallback").length, 1);
+  }
+  for (const limit of ["0", "4294967296", "limit", "0.5"]) {
+    assert.equal(analyze(`const lines = "".split("\\n", ${limit}); save(lines.length ? lines : undefined);`).some(s => s.ruleId === "typescript.split.empty-fallback"), false);
+  }
+});

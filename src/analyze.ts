@@ -39,13 +39,16 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
   });
 
   function visit(node: ts.Node): void {
-    if (ts.isVariableStatement(node) && (node.declarationList.flags & ts.NodeFlags.Const) !== 0 && ts.isBlock(node.parent)) {
+    if (ts.isVariableStatement(node) && (node.declarationList.flags & ts.NodeFlags.Const) !== 0 && (ts.isBlock(node.parent) || ts.isSourceFile(node.parent))) {
       const next = node.parent.statements[node.parent.statements.indexOf(node) + 1];
       if (next) for (const declaration of node.declarationList.declarations) {
         const init = declaration.initializer;
         if (!ts.isIdentifier(declaration.name) || !init || !ts.isCallExpression(init) ||
             !ts.isPropertyAccessExpression(init.expression) || init.expression.name.text !== "split" ||
-            init.arguments.length !== 1 || !init.arguments[0] || !ts.isStringLiteral(init.arguments[0]) || init.arguments[0].text === "") continue;
+            (init.arguments.length !== 1 && init.arguments.length !== 2) || !init.arguments[0] || !ts.isStringLiteral(init.arguments[0]) || init.arguments[0].text === "") continue;
+        const limit = init.arguments[1];
+        // String.split coerces limits to uint32; 2**32 therefore behaves as zero.
+        if (limit && (!ts.isNumericLiteral(limit) || (Number(limit.text) >>> 0) === 0)) continue;
         const name = declaration.name.text;
         const inspect = (part: ts.Node): void => {
           if (ts.isFunctionLike(part)) return;
