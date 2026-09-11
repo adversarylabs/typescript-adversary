@@ -48,16 +48,22 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
             (init.arguments.length !== 1 && init.arguments.length !== 2) || !init.arguments[0] || !ts.isStringLiteral(init.arguments[0]) || init.arguments[0].text === "") continue;
         const limit = init.arguments[1];
         // String.split coerces limits to uint32; 2**32 therefore behaves as zero.
-        if (limit && (!ts.isNumericLiteral(limit) || (Number(limit.text) >>> 0) === 0)) continue;
+        const numericLimit = limit && ts.isNumericLiteral(limit) ? Number(limit.text) :
+          limit && ts.isPrefixUnaryExpression(limit) && ts.isNumericLiteral(limit.operand) &&
+          (limit.operator === ts.SyntaxKind.MinusToken || limit.operator === ts.SyntaxKind.PlusToken) ?
+            Number(limit.operand.text) * (limit.operator === ts.SyntaxKind.MinusToken ? -1 : 1) : undefined;
+        if (limit && (numericLimit === undefined || (numericLimit >>> 0) === 0)) continue;
         const name = declaration.name.text;
+        let emitted = false;
         const inspect = (part: ts.Node): void => {
-          if (ts.isFunctionLike(part)) return;
+          if (emitted || ts.isFunctionLike(part) || ts.isBlock(part)) return;
           if (ts.isConditionalExpression(part) || ts.isIfStatement(part)) {
             const condition = ts.isIfStatement(part) ? part.expression : part.condition;
             const length = ts.isBinaryExpression(condition) && condition.operatorToken.kind === ts.SyntaxKind.GreaterThanToken &&
               ts.isNumericLiteral(condition.right) && condition.right.text === "0" ? condition.left : condition;
             if (ts.isPropertyAccessExpression(length) && ts.isIdentifier(length.expression) &&
                 length.expression.text === name && length.name.text === "length") {
+              emitted = true;
               pushSignal(signals, source, file, [init, condition], {
                 ruleId: "typescript.split.empty-fallback", disposition: "context", category: "runtime-type-alignment",
                 severity: "medium", confidence: "high", title: "Split result length is used as an empty-input guard",
@@ -69,7 +75,9 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
           }
           ts.forEachChild(part, inspect);
         };
-        inspect(next);
+        if (ts.isIfStatement(next)) inspect(next);
+        else if (ts.isExpressionStatement(next)) inspect(next.expression);
+        else if (ts.isReturnStatement(next) && next.expression) inspect(next.expression);
       }
     }
     if (ts.isCallExpression(node) && isForEach(node) && isAsyncFunction(node.arguments[0])) {

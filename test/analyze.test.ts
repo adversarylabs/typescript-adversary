@@ -120,3 +120,12 @@ test("prepares adjacent if guards but never emits a native-string finding for cu
   assert.ok(signals.every(s => s.disposition === "context"));
   assert.match(signals[0]!.whyItMatters, /For a string receiver/);
 });
+
+test("split facts are bounded to the next guard and deduplicated per declaration", () => {
+ const signals = (text: string) => analyze(text).filter(s => s.ruleId === "typescript.split.empty-fallback");
+ assert.equal(signals('const a = "".split("\\n"); const b = "".split("\\n"); save(b.length ? b : undefined);').length, 1);
+ assert.equal(signals('const a = "".split("\\n"); if (a.length) { save(a.length ? a : undefined); }').length, 1);
+ assert.equal(signals('const a = "".split("\\n"); { const a = []; save(a.length ? a : undefined); }').length, 0);
+ assert.equal(signals('const a = "".split("\\n", -1); save(a.length ? a : undefined);').length, 1);
+ assert.equal(signals('const a = "".split("\\n", -4294967296); save(a.length ? a : undefined);').length, 0);
+});
