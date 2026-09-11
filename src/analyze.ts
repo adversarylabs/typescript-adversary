@@ -39,6 +39,47 @@ function analyzeSource(source: SourceFile, signals: DeterministicSignal[]): void
   });
 
   function visit(node: ts.Node): void {
+    if (ts.isVariableStatement(node) && (node.declarationList.flags & ts.NodeFlags.Const) !== 0 && (ts.isBlock(node.parent) || ts.isSourceFile(node.parent))) {
+      const next = node.parent.statements[node.parent.statements.indexOf(node) + 1];
+      if (next) for (const declaration of node.declarationList.declarations) {
+        const init = declaration.initializer;
+        if (!ts.isIdentifier(declaration.name) || !init || !ts.isCallExpression(init) ||
+            !ts.isPropertyAccessExpression(init.expression) || init.expression.name.text !== "split" ||
+            (init.arguments.length !== 1 && init.arguments.length !== 2) || !init.arguments[0] || !ts.isStringLiteral(init.arguments[0]) || init.arguments[0].text === "") continue;
+        const limit = init.arguments[1];
+        // String.split coerces limits to uint32; 2**32 therefore behaves as zero.
+        const numericLimit = limit && ts.isNumericLiteral(limit) ? Number(limit.text) :
+          limit && ts.isPrefixUnaryExpression(limit) && ts.isNumericLiteral(limit.operand) &&
+          (limit.operator === ts.SyntaxKind.MinusToken || limit.operator === ts.SyntaxKind.PlusToken) ?
+            Number(limit.operand.text) * (limit.operator === ts.SyntaxKind.MinusToken ? -1 : 1) : undefined;
+        if (limit && (numericLimit === undefined || (numericLimit >>> 0) === 0)) continue;
+        const name = declaration.name.text;
+        let emitted = false;
+        const inspect = (part: ts.Node): void => {
+          if (emitted || ts.isFunctionLike(part) || ts.isBlock(part)) return;
+          if (ts.isConditionalExpression(part) || ts.isIfStatement(part)) {
+            const condition = ts.isIfStatement(part) ? part.expression : part.condition;
+            const length = ts.isBinaryExpression(condition) && condition.operatorToken.kind === ts.SyntaxKind.GreaterThanToken &&
+              ts.isNumericLiteral(condition.right) && condition.right.text === "0" ? condition.left : condition;
+            if (ts.isPropertyAccessExpression(length) && ts.isIdentifier(length.expression) &&
+                length.expression.text === name && length.name.text === "length") {
+              emitted = true;
+              pushSignal(signals, source, file, [init, condition], {
+                ruleId: "typescript.split.empty-fallback", disposition: "context", category: "runtime-type-alignment",
+                severity: "medium", confidence: "high", title: "Split result length is used as an empty-input guard",
+                summary: "A const split result is immediately tested for nonzero length without filtering its entries.",
+                whyItMatters: "For a string receiver and a nonempty separator, even empty input produces one empty field; verify whether this makes the fallback unreachable and violates the consumer contract.",
+                recommendation: "Confirm string split semantics and the intended empty representation, then test raw input or normalize entries before checking length; preserve intentionally meaningful empty fields.",
+              });
+            }
+          }
+          ts.forEachChild(part, inspect);
+        };
+        if (ts.isIfStatement(next)) inspect(next);
+        else if (ts.isExpressionStatement(next)) inspect(next.expression);
+        else if (ts.isReturnStatement(next) && next.expression) inspect(next.expression);
+      }
+    }
     if (ts.isCallExpression(node) && isForEach(node) && isAsyncFunction(node.arguments[0])) {
       pushSignal(signals, source, file, [node.expression, asyncModifier(node.arguments[0])], {
         ruleId: "typescript.async.ignored-foreach",
