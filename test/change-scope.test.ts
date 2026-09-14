@@ -119,6 +119,7 @@ test("an all-files review remains fully eligible", async () => {
     headRef: "WORKTREE",
     scanMode: "all",
     changedFiles: ["src/sample.ts"],
+    changedRanges: [],
     worktree: true,
   };
 
@@ -164,6 +165,7 @@ function changedContext(repo: string, changedFiles: string[]): RuleContext {
     headRef: "WORKTREE",
     scanMode: "changed",
     changedFiles,
+    changedRanges: [],
     worktree: true,
   });
 }
@@ -173,6 +175,8 @@ function context(repoPath: string, change: RuleContext["change"]): RuleContext {
     repoPath,
     change,
     repoIndex: null,
+    repoGraph: null,
+    outcomeContext: null,
     summary: {},
     cache: new Map(),
     relpath: (path) => path,
